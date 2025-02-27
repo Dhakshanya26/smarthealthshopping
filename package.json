@@ -1,0 +1,41 @@
+{
+  "name": "react-chat-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 8080",
+    "create-env": "node build-env.cjs",
+    "build": "npm run create-env && vite build",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "sync-website": "npm run build && node build-syncwebsite.cjs",
+    "local-sync": "vite build && node build-syncwebsite.cjs"
+  },
+  "dependencies": {
+    "@aws-amplify/ui-react": "^6.1.3",
+    "@cloudscape-design/components": "^3.0.521",
+    "@cloudscape-design/design-tokens": "^3.0.34",
+    "@cloudscape-design/global-styles": "^1.0.23",
+    "aws-amplify": "^6.0.16",
+    "react": "^18.2.0",
+    "react-chatbot-kit": "^2.2.2",
+    "react-dom": "^18.2.0",
+    "react-icons": "^5.0.1",
+    "react-markdown": "^10.0.0",
+    "react-webcam": "^7.2.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "dotenv": "^16.4.2",
+    "eslint": "^8.56.0",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.5",
+    "toml": "^3.0.0",
+    "vite": "^5.1.0"
+  }
+}
