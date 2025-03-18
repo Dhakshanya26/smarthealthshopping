@@ -3,6 +3,8 @@ const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
 const { randomUUID } = require('crypto');
 const ddb = new DynamoDBClient();
 const ddbDocClient = DynamoDBDocumentClient.from(ddb);
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const { ORDER_TABLE } = process.env;
 
