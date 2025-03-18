@@ -1,0 +1,11 @@
+{
+  "name": "bedrock-agents",
+  "version": "1.0.0",
+  "description": "Build openapi doc and Lambda to use with Bedrock Agents",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,11 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "foodappdemo"
+resolve_s3 = true
+s3_prefix = "foodappdemo"
+region = "us-east-1"
+profile = "sudha-bedrock"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "UserEmail=\"arumsudu@amazon.co.uk\""
+image_repositories = []

@@ -1,0 +1,280 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Bedrock Agents with Actions
+Parameters:
+  UserEmail:
+    Type: String
+    Description: User email for Cognito login
+Globals:
+  Api:
+    Auth:
+      Authorizers:
+        APICognitoAuth:
+          UserPoolArn:
+            Fn::GetAtt:
+            - CognitoUsers
+            - Arn
+          AuthType: COGNITO_USER_POOL
+      DefaultAuthorizer: APICognitoAuth
+      ApiKeyRequired: false
+      UsagePlan:
+        CreateUsagePlan: PER_API
+        UsagePlanName: GatewayKey
+      AddApiKeyRequiredToCorsPreflight: false
+      AddDefaultAuthorizerToCorsPreflight: false
+    Cors:
+      AllowMethods: '''GET,POST,OPTIONS'''
+      AllowHeaders: '''content-type, authorization, x-api-key'''
+      AllowOrigin: '''*'''
+  Function:
+    MemorySize: 512
+    Architectures:
+    - arm64
+    Runtime: nodejs18.x
+    Timeout: 30
+    Environment:
+      Variables:
+        ORDER_TABLE:
+          Ref: OrderTable
+        BEDROCK_AGENT_ID: BEDROCK-AGENT-ID-HERE
+        AGENT_ALIAS: BEDROCK-AGENT-ALIAS-HERE
+Resources:
+  OrderTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: DigitalBaristaOrders
+      PrimaryKey:
+        Name: id
+        Type: String
+  BedrockKnowledgebaseBucket:
+    DeletionPolicy: Delete
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  BedrockAgentsAction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: BedrockAgentsAction
+      Handler: bedrock-agents-main.handler
+    Metadata:
+      SamResourceId: BedrockAgentsAction
+  BedrockLambdaInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+        - BedrockAgentsAction
+        - Arn
+      Principal: bedrock.amazonaws.com
+  BedrockActionToOrderTable:
+    Type: AWS::Serverless::Connector
+    Properties:
+      Source:
+        Id: BedrockAgentsAction
+      Destination:
+        Id: OrderTable
+      Permissions:
+      - Read
+      - Write
+  ApiToOrderTable:
+    Type: AWS::Serverless::Connector
+    Properties:
+      Source:
+        Id: APIProxy
+      Destination:
+        Id: OrderTable
+      Permissions:
+      - Read
+      - Write
+  APIProxy:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: APIProxy
+      Handler: api.handler
+      Policies:
+      - Statement:
+        - Effect: Allow
+          Action:
+          - bedrock:InvokeAgent
+          - bedrock:InvokeModel
+          - bedrock:InvokeModelWithResponseStream
+          Resource: '*'
+      Events:
+        ApiPost:
+          Type: Api
+          Properties:
+            Path: /message
+            Method: post
+        GetDDB:
+          Type: Api
+          Properties:
+            Path: /ddb
+            Method: get
+    Metadata:
+      SamResourceId: APIProxy
+  CloudFront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: webpage
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        Enabled: true
+        Origins:
+        - DomainName:
+            Fn::Join:
+            - ''
+            - - Ref: WebUIBucketName
+              - .s3.
+              - Ref: AWS::Region
+              - .amazonaws.com
+          Id: webpage
+          S3OriginConfig:
+            OriginAccessIdentity:
+              Fn::Sub: origin-access-identity/cloudfront/${CfOriginAccessIdentity}
+        PriceClass: PriceClass_100
+  CfOriginAccessIdentity:
+    Metadata:
+      Comment: Access S3 bucket content only through CloudFront
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: Access S3 bucket content only through CloudFront
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+  WebUIBucketName:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${AWS::StackName}-${AWS::AccountId}-webui
+      AccessControl: Private
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  WebUIBucketPolicy:
+    Properties:
+      Bucket:
+        Ref: WebUIBucketName
+      PolicyDocument:
+        Statement:
+        - Action:
+          - s3:GetObject
+          Effect: Allow
+          Principal:
+            CanonicalUser:
+              Fn::GetAtt:
+              - CfOriginAccessIdentity
+              - S3CanonicalUserId
+          Resource:
+          - Fn::Sub: arn:aws:s3:::${WebUIBucketName}/*
+    Type: AWS::S3::BucketPolicy
+  CognitoUsers:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName:
+        Fn::Sub: ${AWS::StackName}-user-pool
+      UsernameConfiguration:
+        CaseSensitive: false
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireSymbols: true
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 1
+      UsernameAttributes:
+      - email
+      MfaConfiguration: 'OFF'
+      Schema:
+      - AttributeDataType: String
+        DeveloperOnlyAttribute: false
+        Mutable: true
+        Name: email
+  ClientAppClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId:
+        Ref: CognitoUsers
+      ClientName: ClientApp
+      GenerateSecret: false
+      RefreshTokenValidity: 30
+      AllowedOAuthFlows:
+      - code
+      - implicit
+      ExplicitAuthFlows:
+      - ALLOW_USER_SRP_AUTH
+      - ALLOW_REFRESH_TOKEN_AUTH
+      CallbackURLs:
+      - http://localhost/
+      - Fn::Sub: https://${CloudFront.DomainName}/
+      AllowedOAuthScopes:
+      - email
+      - openid
+      - profile
+      - aws.cognito.signin.user.admin
+      AllowedOAuthFlowsUserPoolClient: true
+      PreventUserExistenceErrors: ENABLED
+      SupportedIdentityProviders:
+      - COGNITO
+  TestUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId:
+        Ref: CognitoUsers
+      Username:
+        Ref: UserEmail
+      UserAttributes:
+      - Name: email
+        Value:
+          Ref: UserEmail
+Outputs:
+  S3WebBucket:
+    Description: S3 bucket name for web assets
+    Value:
+      Ref: WebUIBucketName
+  CloudfrontID:
+    Description: Cloudfront distribution ID
+    Value:
+      Ref: CloudFront
+  CloudfrontURL:
+    Description: URL of the Cloudfront distribution
+    Value:
+      Fn::GetAtt:
+      - CloudFront
+      - DomainName
+  ApiGatewayURL:
+    Description: URL of API Gateway
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod
+  UserPoolId:
+    Description: The user pool ID
+    Value:
+      Ref: CognitoUsers
+  UserPoolUrl:
+    Description: URL of the Cognito provider
+    Value:
+      Fn::GetAtt:
+      - CognitoUsers
+      - ProviderURL
+  ClientId:
+    Description: The app client ID
+    Value:
+      Ref: ClientAppClient

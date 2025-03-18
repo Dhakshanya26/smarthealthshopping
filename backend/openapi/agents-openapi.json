@@ -1,0 +1,180 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Submit Order Automation API",
+    "version": "1.0.0",
+    "description": "API for submitting orders and checking product inventory level"
+  },
+  "paths": {
+    "/customer/{CustomerName}": {
+      "get": {
+        "summary": "Get information about a customer",
+        "description": "Get information about a customer. Return customer details such as location city and likes.",
+        "operationId": "getCustomer",
+        "parameters": [
+          {
+            "name": "CustomerName",
+            "in": "path",
+            "description": "Customer Name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get Customer Information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customerId": {
+                      "type": "string",
+                      "description": "The ID for the customer record"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Customers Name"
+                    },
+                    "city": {
+                      "type": "string",
+                      "description": "The city name the customer resides in"
+                    },
+                    "likes": {
+                      "type": "string",
+                      "description": "Preferences the customers enjoys in their drink"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/location": {
+      "get": {
+        "summary": "Get store locations within a city",
+        "description": "Get store locations within a city. Returns pick-up stores for an order.",
+        "operationId": "getLocation",
+        "parameters": [
+          {
+            "name": "CityName",
+            "in": "query",
+            "description": "City name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Get all stores that are in a city",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "locationId": {
+                        "type": "string",
+                        "description": "The ID for the store"
+                      },
+                      "storeName": {
+                        "type": "string",
+                        "description": "The name of the store"
+                      },
+                      "city": {
+                        "type": "string",
+                        "description": "The city for the store"
+                      },
+                      "address": {
+                        "type": "string",
+                        "description": "Address of store"
+                      },
+                      "hours": {
+                        "type": "string",
+                        "description": "store operating hours"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submitOrder": {
+      "post": {
+        "summary": "Submit order endpoint",
+        "description": "Submit customer order to the commerce endpoint. Return the order ID.",
+        "operationId": "submitCustomerOrder",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customerName": {
+                    "type": "string",
+                    "description": "The customers name for the order"
+                  },
+                  "productName": {
+                    "type": "string",
+                    "description": "Name or title of the product"
+                  },
+                  "productSize": {
+                    "type": "string",
+                    "description": "The size of the product"
+                  },
+                  "orderTotal": {
+                    "type": "string",
+                    "description": "Order total in US dollars"
+                  },
+                  "storeName": {
+                    "type": "string",
+                    "description": "The store name for the pick-up location"
+                  }
+                },
+                "required": [
+                  "customerName",
+                  "productName",
+                  "productSize",
+                  "orderTotal",
+                  "storeName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string",
+                      "description": "Unique Id to track the status of an order"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request. One or more required fields are missing or invalid"
+          }
+        }
+      }
+    }
+  }
+}
