@@ -1,5 +1,5 @@
-# Bedrock Agents Order Chatbot
-<img src="./readme-assets/ui.png" alt="image" style="width:700px;height:auto">
+# Smart shopping health-first Assistant
+<img src="./" alt="image" style="width:700px;height:auto">
 
 ## Overview
 This is a fullstack Chatbot app that is able to help a customer find a new drink based on preferences such as calories, allergens, flavors, or seasonal trends. After a drink is found it will walk the customer through the order process and submit the order.  The Chatbot is able to surface recommendations via Bedrock Knowledge base using product data stored in S3. The Chatbot is also able to access known customer preferences from Datastore, find local store locations for pickup, and submit order to Commerce engine using Bedrock Agents. This is 100% Serverless and is well architected. Demo -> POC in a matter of hours!
