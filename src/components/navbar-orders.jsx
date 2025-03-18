@@ -32,10 +32,10 @@ const NavOrders = () => {
   };
 
   return (
-    <div>
+    <div >
       {/* <Button variation='primary' size='small' onClick={()=> setVisible(true)} >Orders</Button> */}
       {visible ? (
-        <div style={{ position: "absolute", top: "10px", right: "10px" }}>
+        <div style={{ position: "absolute", top: "10px", right: "10px" ,zIndex: "1000000000", border: "1px solid #616161" }}>
           <Card onClick={() => setVisible(false)}>
             {loading ? <Loader variation="linear" /> : null}
             <h2>My cart</h2>
@@ -44,10 +44,10 @@ const NavOrders = () => {
               style={{
                 color: "#08365f",
                 margin: "20px",
-                "border-bottom": "1px solid",
+                borderbottom: "1px solid",
               }}
             >
-              {cartItems.map((item, index) => (
+              { cartItems.length > 0 ? (cartItems.map((item, index) => (
                 <div
                   key={index}
                   className="item"
@@ -56,7 +56,7 @@ const NavOrders = () => {
                   <Text>{`Product ${index + 1}: ${item.productName} `}</Text>
                   <br></br>
                 </div>
-              ))}
+              ))): <div> No items found.</div>}
             </div>
           </Card>
           <button
@@ -67,8 +67,8 @@ const NavOrders = () => {
           </button>
         </div>
       ) : (
-        <Button variation="primary" size="small" onClick={() => getOrders()}>
-          <BsCart size={20} /> Cart
+        <Button variation="primary" size="small" onClick={() => getOrders()}  style={{height: "100%"}}>
+          <BsCart size={20} style={{ marginRight: "5px" }} /> Cart
         </Button>
       )}
     </div>
