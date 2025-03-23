@@ -46,6 +46,7 @@ const ActionProvider = ({ createChatBotMessage, setState, children }) => {
     try {
       const botRes = await postAPI("/message", usrMsg);
       console.log("BOT RESPONSE: ", botRes);
+    
       if (botRes && botRes.bot) {
         const botResponseParsed = isJSON(botRes.bot)
           ? JSON.parse(botRes.bot)
@@ -53,43 +54,24 @@ const ActionProvider = ({ createChatBotMessage, setState, children }) => {
 
         if (
           botResponseParsed &&
-          botResponseParsed.agent == "order-manager" &&
-          botResponseParsed.cartId
+          botResponseParsed.agent == "Order Manager" &&
+          botResponseParsed["Cart Id"]
         ) {
-          setCurrentCartId(botResponseParsed.cartId);
+          setCurrentCartId(botResponseParsed["Cart Id"]);
         }
 
         const botMessage = createChatBotMessage(
           botResponseParsed?.message || botResponseParsed
         );
 
-        if (
-          botResponseParsed.tag &&
-          botResponseParsed.tag == "image" &&
-          botResponseParsed?.message
-        ) {
-          const generateRecipeImageResponse = await postAPI(
-            `/imagegenerator`,
-            botResponseParsed?.message,
-            "image"
-          );
-          const generateRecipeImage = generateRecipeImageResponse?.base64Image;
+        setState((prev) => {
+          // Remove Loading
+          const newPrevMsg = prev.messages.slice(0, -1);
+          return { ...prev, messages: [...newPrevMsg, botMessage] };
+        });
+        
+        generateImage (botResponseParsed);
 
-          const botMessageForImage = createChatBotMessage(botMessage.message, {
-            widget: "recipeIngredients",
-            payload: { generateRecipeImage, imageIngredientsResponse: null },
-          });
-          setState((prev) => {
-            const newPrevMsg = prev.messages.slice(0, -1);
-            return { ...prev, messages: [...newPrevMsg, botMessageForImage] };
-          });
-        } else {
-          setState((prev) => {
-            // Remove Loading
-            const newPrevMsg = prev.messages.slice(0, -1);
-            return { ...prev, messages: [...newPrevMsg, botMessage] };
-          });
-        }
         if (botRes.error != undefined) {
           setState((prev) => {
             const newPrevMsg = prev.messages.slice(0, -1);
@@ -102,6 +84,38 @@ const ActionProvider = ({ createChatBotMessage, setState, children }) => {
     }
   };
 
+  const generateImage = async (botResponseParsed) => 
+  {
+    if (
+      botResponseParsed.tag &&
+      botResponseParsed.tag == "image" &&
+      botResponseParsed?.message
+    ) {
+      const loading = createChatBotMessage(<Loader message={"Generating Image"}/>);
+      setState((prev) => ({ ...prev, messages: [...prev.messages, loading] }));
+
+      const generateRecipeImageResponse = await postAPI(
+        `/imagegenerator`,
+        botResponseParsed?.message,
+        "image"
+      );
+      
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+      sleep(5000);
+     const generateRecipeImage = generateRecipeImageResponse?.base64Image; 
+     const botMessageForImage = createChatBotMessage("Generated Image ...", {
+        widget: "recipeIngredients",
+        payload: { generateRecipeImage, imageIngredientsResponse: null },
+      });
+
+      setState((prev) => {
+        const newPrevMsg = prev.messages.slice(0, -1);
+        return { ...prev, messages: [...newPrevMsg, botMessageForImage] };
+      });
+
+    } 
+  }
   //handle show generic bot message
   const handleShowBotMessage = (msg) => {
     const botMessage = createChatBotMessage(msg);
@@ -116,43 +130,29 @@ const ActionProvider = ({ createChatBotMessage, setState, children }) => {
 
     setState((prev) => ({ ...prev, messages: [...prev.messages, loading] }));
 
-    getIngredients(imgSrc);
-  };
- 
-  const getIngredients = async (imgSrc) => {
-    
-    try {
-        const botRes = await postAPI("/message", imgSrc, "image");
-        console.log("BOT RES: ", botRes);
-      let botMessage;
-      if (botRes && "bot" in botRes) {
-         
-       const parsedMessage = JSON.parse(botRes.bot).message ;
-      
-       const generateRecipeImageResponse = await postAPI(
-        `/imagegenerator`,
-        parsedMessage?.message,
-        "image"
+    const botRes = await postAPI("/message", imgSrc, "image");
+    console.log("BOT RES: ", botRes);
+    if (botRes && "bot" in botRes) {
+         debugger;
+         const botResponseParsed = isJSON(botRes.bot)
+         ? JSON.parse(botRes.bot)
+         : botRes.bot;
+
+      const botMessage = createChatBotMessage(
+        botResponseParsed?.message || botResponseParsed
       );
-      const generateRecipeImage = generateRecipeImageResponse?.base64Image;
 
-        botMessage = createChatBotMessage(parsedMessage, {
-          widget: "recipeIngredients",
-          payload: { generateRecipeImage, imageIngredientsResponse: parsedMessage },
-        });
+      setState((prev) => {
+        // Remove Loading
+        const newPrevMsg = prev.messages.slice(0, -1);
+        return { ...prev, messages: [...newPrevMsg, botMessage] };
+      });
 
-        setState((prev) => {
-          const newPrevMsg = prev.messages.slice(0, -1);
-          return { ...prev, messages: [...newPrevMsg, botMessage] };
-        });
-      } else {
-        handleErrorMessage(botRes.error !=null  ? botRes.error: "response is null");
-      }
-    } catch (error) {
-      handleErrorMessage(`Failed due to ${error}`);
+      generateImage(botResponseParsed);
     }
   };
-
+ 
+   
   //Upload an image
   const handleUpload = () => {
     const botMessage = createChatBotMessage(
@@ -255,8 +255,7 @@ const ActionProvider = ({ createChatBotMessage, setState, children }) => {
             recapture,
             useThisImage,
             retake,
-            startCam,
-            getIngredients,
+            startCam
           },
         });
       })}

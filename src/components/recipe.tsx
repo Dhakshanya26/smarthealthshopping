@@ -9,11 +9,11 @@ import Button from "@cloudscape-design/components/button";
 import Webcam from "react-webcam";
 import ImageIngredients from "./recipe_image_ingredients";
 
-const Recipe: React.FC<{ actionProvider: any }> = ({ actionProvider }) => {
+const Recipe: React.FC<{ actionProvider: any }> = () => {
   const webcamRef = useRef<any>();
   const [imgSrc, setImgSrc] = useState<string | null>(null);
-  const [myValue, setMyValue] = useState([]);
-  const [selectedImgSrc, setSelectedImgSrc] = useState<string | null>(null);
+ 
+  const [selectedImgSrc] = useState<string | null>(null);
   const [showWebcam, setShowWebcam] = useState(false);
   const [showOptionsButtons, setShowOptionsButtons] = useState(true);
   const [loadingVideoDevices, setLoadingVideoDevices] = useState(false);
@@ -21,40 +21,7 @@ const Recipe: React.FC<{ actionProvider: any }> = ({ actionProvider }) => {
   const [selectedDevice, setSelectedDevice] = useState<{
     value: string;
   } | null>(null);
-
-  const enumerateDevices = async () => {
-    try {
-      setLoadingVideoDevices(true);
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: true,
-      });
-      const mediaDevices = await navigator.mediaDevices.enumerateDevices();
-      mediaStream.getTracks().forEach((track) => track.stop());
-      const videoDevices = mediaDevices.filter(
-        (device) => device.kind === "videoinput"
-      );
-
-      setDevices(videoDevices);
-      const deviceId = videoDevices.filter((d) =>
-        d.label.toLowerCase().includes("back")
-      );
-      if (deviceId.length > 0) {
-        setSelectedDevice({
-          value: deviceId[0].deviceId,
-        });
-      } else {
-        setSelectedDevice({
-          value: videoDevices[0].deviceId,
-        });
-      }
-    } catch (error) {
-      console.error("Error enumerating devices:", error);
-    } finally {
-      setLoadingVideoDevices(false);
-    }
-  };
-
+ 
   function resizeBase64Image(
     base64Image: string,
     width: number,
@@ -124,54 +91,7 @@ const Recipe: React.FC<{ actionProvider: any }> = ({ actionProvider }) => {
   const cancelWebcam = () => {
     setShowWebcam(false);
     setImgSrc(null);
-  };
-
-  const startWebcam = () => {
-    setSelectedImgSrc(null);
-    setImgSrc(null);
-    setShowWebcam(true);
-    enumerateDevices();
-  };
-
-  const retake = () => {
-    setImgSrc(null);
-  };
-  const useThisImage = () => {
-    setShowOptionsButtons(false);
-    //setShowWebcam(false);
-
-    setSelectedImgSrc(imgSrc);
-  };
-
-  const fileUploadOnChange = ({ detail }) => {
-    setSelectedImgSrc(null);
-   
-    const files = detail.value;
-    if (files.length > 0) {
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const image = new Image();
-        image.src = reader.result as string;
-
-        image.onload = () => {
-          const resizedImage = resizeImage(image, 400, 400);
-          setImgSrc(resizedImage ?? null);
-          //console.log("resizedImage base 64");
-          //console.log(resizedImage);
-          setShowOptionsButtons(true);
-          actionProvider.handleImageUpload(resizedImage);
-        };
-      };
-      reader.readAsDataURL(files[0]);
-    }
-  };
-
-  // const handleFileUploadSuccess = () => {
-  //   if (actionProvider) {
-  //     actionProvider.handleImageUploadSuccess();
-  //   }
-  // };
+  }; 
 
   return (
     <div>
@@ -207,7 +127,7 @@ const Recipe: React.FC<{ actionProvider: any }> = ({ actionProvider }) => {
                           >
                             <SegmentedControl
                               selectedId={selectedDevice?.value ?? null}
-                              options={devices.map((device, index) => ({
+                              options={devices.map((device) => ({
                                 text: device.label.replace(" Camera", ""),
                                 id: device.deviceId,
                               }))}

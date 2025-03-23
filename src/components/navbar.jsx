@@ -24,10 +24,10 @@ function Navbar() {
   return (
     <View>
     
-      <Flex margin={"1em"} alignItems={"center"}>
+      <Flex margin={"1em"} alignItems={"center"} >
 
      
-        <Flex flex={1} justifyContent={"flex-start"} alignItems={"center"}>
+        <Flex flex={1} justifyContent={"flex-start"} alignItems={"center"} maxWidth={"200px"}>
           {/* <Image height="3em" backgroundColor={'rgba(255, 255, 255, 0.8)'} padding={'3px'} borderRadius={'5px'} src={logo} /> */}
           <Image
             height="8em"
@@ -48,6 +48,7 @@ function Navbar() {
           borderRadius={"12px"}
           style={{ backdropFilter: "blur(-18px)" }}
           color={"rgb(4 125 149)"}
+          margin={"0 10%"}
         >
           <Link to="/" color={"rgb(4 125 149)"} style={{ fontWeight: "bold" }}>
              Vegetables
